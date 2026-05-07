@@ -5,14 +5,18 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from . import views
-from applications.scholarships.api.views import GetWinnersView
+from applications.scholarships.api.frontend_catalog import FrontendCatalogView
+from applications.scholarships.api.awards_catalog import AwardsCatalogView
+from applications.scholarships.api.merit_list import MeritListView
+from applications.scholarships.api.views import WithdrawApplicationView, GetWinnersView
 from applications.scholarships.api.views import create_award,McmUpdateView, McmRetrieveView, DirectorSilverRetrieveView,DirectorSilverUpdateView,DirectorGoldRetrieveView,DirectorGoldUpdateView,ProficiencyDmRetrieveView,ProficiencyDmUpdateView,AwardAndScholarshipCreateView,DirectorSilverMarksheetView,DirectorGoldMarksheetView, CheckApplicationWindowView
-from applications.scholarships.api.views import ScholarshipDetailView,StudentDetailView,DirectorSilverDetailView,DirectorGoldDetailView,DirectorGoldListView,DMProficiencyListView,ReleaseCreateView,McmStatusUpdateView,DirectorSilverDecisionView,DMProficiencyDecisionView,DirectorGoldAcceptRejectView,DirectorSilverListView,GetReleaseByAwardView,McmDocumentsRetrieveView
+from applications.scholarships.api.views import ScholarshipDetailView,StudentDetailView,DirectorSilverDetailView,DirectorGoldDetailView,DirectorGoldListView,DMProficiencyListView,ReleaseCreateView,McmStatusUpdateView,SingleParentStatusUpdateView,DirectorSilverDecisionView,DMProficiencyDecisionView,DirectorGoldAcceptRejectView,DirectorSilverListView,GetReleaseByAwardView,McmDocumentsRetrieveView,SingleParentRetrieveView,SingleParentUpdateView    
 # ,DirectorSilverAcceptRejectView
 
 app_name = 'spacs'
 
 urlpatterns = [
+    path('applications/<int:pk>/withdraw/', WithdrawApplicationView.as_view(), name='withdraw-application'),
 
     url(r'^$', views.spacs, name='spacs'),
     url(r'^student_view/$', views.student_view, name='student_view'),
@@ -26,10 +30,15 @@ urlpatterns = [
     url(r'^getContent/$', views.getContent, name='getContent'),
     url(r'^updateEndDate/$', views.updateEndDate, name='updateEndDate'),
     #app --> api created by 2022 batch
+    path('frontend_catalog/', FrontendCatalogView.as_view(), name='frontend-catalog'),
+    path('awards_catalog/', AwardsCatalogView.as_view(), name='awards-catalog'),
+    path('merit_list/', MeritListView.as_view(), name='merit-list'),
     url(r'get-winners/', GetWinnersView.as_view(), name='get-winners'),
     url(r'create-award/', create_award.as_view(), name='create-award'),
     url(r'mcm_update/', McmUpdateView.as_view(), name='mcm-update'),
     url(r'mcm_show/', McmRetrieveView.as_view(), name='mcm-show'),
+    url(r'single_parent_show/', SingleParentRetrieveView.as_view(), name='single-parent-show'),
+    url(r'single_parent_update/', SingleParentUpdateView.as_view(), name='single-parent-update'),
     url(r'directorsilver_show/', DirectorSilverRetrieveView.as_view(), name='director-silver--show'),
     url(r'directorsilver_update/', DirectorSilverUpdateView.as_view(), name='director-silver-update'),
     url(r'directorgold_show/', DirectorGoldRetrieveView.as_view(), name='director-gold-show'),
@@ -76,6 +85,7 @@ urlpatterns = [
 
     # url(r'student_file_show/', StudentDetailView.as_view(), name='student-file-show'),
     path('mcm/status-update/', McmStatusUpdateView.as_view(), name='mcm-status-update'),
+    path('single_parent/status-update/', SingleParentStatusUpdateView.as_view(), name='single-parent-status-update'),
     path('api/director_silver/decision/', DirectorSilverDecisionView.as_view(), name='director_silver_decision'),
     path('director-gold/accept-reject/', DirectorGoldAcceptRejectView.as_view(), name='director-gold-accept-reject'),
     path('api/dm-proficiency/decsion/', DMProficiencyDecisionView.as_view(), name='proficiency-dm-decision'),  
