@@ -1,15 +1,20 @@
 from rest_framework import serializers
 from applications.academic_information.models import Student
 from applications.globals.models import ExtraInfo
-from applications.scholarships.models import Award_and_scholarship,Previous_winner,Mcm,Director_silver,Director_gold,Notional_prize,Proficiency_dm,Release
+from applications.scholarships.models import Award_and_scholarship,Previous_winner,Mcm,Director_silver,Director_gold,Notional_prize,Proficiency_dm,Release,SingleParent
+
+class SingleParentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SingleParent
+        fields = '__all__'
 
 class McmStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mcm
-        fields = ['status']
+        fields = ['status', 'remarks']
 
     def validate_status(self, value):
-        valid_statuses = ['ACCEPTED', 'REJECTED', 'UNDER_REVIEW']
+        valid_statuses = ['ACCEPTED', 'REJECTED', 'UNDER_REVIEW', 'SUBMITTED', 'FORWARDED', 'NEEDS_INFO', 'APPROVED']
         if value not in valid_statuses:
             raise serializers.ValidationError(f"Status must be one of {valid_statuses}.")
         return value
@@ -83,3 +88,13 @@ class ProficiencyDmSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proficiency_dm
         fields = '__all__'
+class SingleParentStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SingleParent
+        fields = ['status', 'remarks']
+
+    def validate_status(self, value):
+        valid_statuses = ['ACCEPTED', 'REJECTED', 'UNDER_REVIEW', 'SUBMITTED', 'FORWARDED', 'NEEDS_INFO', 'APPROVED']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(f"Status must be one of {valid_statuses}.")
+        return value

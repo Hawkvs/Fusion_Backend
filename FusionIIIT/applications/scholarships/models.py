@@ -13,8 +13,19 @@ class Constants:
         ('REJECT', 'Reject'),
         ('ACCEPTED', 'Accepted'),
         ('REJECTED', 'Rejected'),
-        ('UNDER_REVIEW', 'Under Review')
-
+        ('UNDER_REVIEW', 'Under Review'),
+        ('SUBMITTED', 'Submitted'),
+        ('FORWARDED', 'Forwarded'),
+        ('NEEDS_INFO', 'Needs Info'),
+        ('APPROVED', 'Approved')
+    )
+    PARENT_STATUS_CHOICES = (
+        ('Both Parents Alive', 'Both Parents Alive'),
+        ('Single Parent', 'Single Parent')
+    )
+    SINGLE_PARENT_CHOICES = (
+        ('FATHER', 'FATHER'),
+        ('MOTHER', 'MOTHER')
     )
     TIME = (
         ('0', '12 Midnight'),
@@ -84,6 +95,22 @@ class Mcm(models.Model):
     brother_occupation = models.TextField(max_length=100, null=True)
     sister_name = models.CharField(max_length=30, null=True)
     sister_occupation = models.TextField(max_length=100, null=True)
+    
+    # New fields added as per requirements
+    email = models.EmailField(max_length=255, null=True, blank=True)
+    jee_rank = models.CharField(max_length=50, null=True, blank=True)
+    student_name = models.CharField(max_length=100, null=True, blank=True)
+    roll_no = models.CharField(max_length=50, null=True, blank=True)
+    batch = models.CharField(max_length=50, null=True, blank=True)
+    programme = models.CharField(max_length=50, null=True, blank=True)
+    cpi = models.FloatField(null=True, blank=True)
+    last_sem_result = models.FileField(upload_to='scholarships/mcm/last_sem_result/', null=True, blank=True)
+    category = models.CharField(max_length=50, null=True, blank=True)
+    mobile_number = models.CharField(max_length=20, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    father_name = models.CharField(max_length=100, null=True, blank=True)
+    mother_name = models.CharField(max_length=100, null=True, blank=True)
+    
     income_father = models.IntegerField(default=0)
     income_mother = models.IntegerField(default=0)
     income_other = models.IntegerField(default=0)
@@ -109,13 +136,25 @@ class Mcm(models.Model):
     college_fee = models.IntegerField(blank=True, null=True)
     college_name = models.CharField(max_length=30, null=True)
     income_certificate = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/income_certificate/')
-    Marksheet = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/marksheet/')
-    Bank_details = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/bank_details/')
-    Affidavit = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/affidavit/')
-    Aadhar_card = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/aadhar_card/')
-    Fee_Receipt = models.FileField(null=False, blank=False, default='', upload_to='scholarships/mcm/fee_receipt/')
+    Marksheet = models.FileField(null=True, blank=True, default='', upload_to='scholarships/mcm/marksheet/')
+    Bank_details = models.FileField(null=True, blank=True, default='', upload_to='scholarships/mcm/bank_details/')
+    Affidavit = models.FileField(null=True, blank=True, default='', upload_to='scholarships/mcm/affidavit/')
+    Aadhar_card = models.FileField(null=True, blank=True, default='', upload_to='scholarships/mcm/aadhar_card/')
+    Fee_Receipt = models.FileField(null=True, blank=True, default='', upload_to='scholarships/mcm/fee_receipt/')
+    
+    parent_status = models.CharField(max_length=50, choices=Constants.PARENT_STATUS_CHOICES, default='Both Parents Alive', null=True, blank=True)
+    single_parent = models.BooleanField(default=False)
+    mother_income_certificate = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/mother_income_certificate/')
+    caste_certificate = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/caste_certificate/')
+    score_card = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/score_card/')
+    undertaking_form = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/undertaking_form/')
+    application_form = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/application_form/')
+    death_certificate = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/death_certificate/')
+    generated_pdf = models.FileField(null=True, blank=True, upload_to='scholarships/mcm/generated_pdf/')
+    
     forms = models.CharField(max_length=100, null=True, blank=True)
     status = models.CharField(max_length=20, choices=Constants.STATUS_CHOICES, default='INCOMPLETE')
+    remarks = models.TextField(null=True, blank=True)
     student = models.ForeignKey(Student,
                                 on_delete=models.CASCADE, related_name='mcm_info')
     annual_income = models.IntegerField(default=0)
@@ -124,6 +163,36 @@ class Mcm(models.Model):
 
     class Meta:
         db_table = 'Mcm'
+
+    def __str__(self):
+        return str(self.student)
+
+class SingleParent(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='single_parent_info')
+    parent_type = models.CharField(max_length=10, choices=Constants.SINGLE_PARENT_CHOICES, default='FATHER')
+    parent_name = models.CharField(max_length=50)
+    parent_occupation = models.CharField(max_length=100)
+    annual_income = models.IntegerField(default=0)
+    income_certificate = models.FileField(null=False, blank=False, default='', upload_to='scholarships/single_parent/income_certificate/')
+    death_certificate = models.FileField(null=False, blank=False, default='', upload_to='scholarships/single_parent/death_certificate/')
+    cpi = models.FloatField(null=True, blank=True)
+    mother_income_certificate = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/mother_income_certificate/')
+    Marksheet = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/marksheet/')
+    last_sem_result = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/last_sem_result/')
+    Bank_details = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/bank_details/')
+    Fee_Receipt = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/fee_receipt/')
+    Affidavit = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/affidavit/')
+    score_card = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/score_card/')
+    undertaking_form = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/undertaking_form/')
+    application_form = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/application_form/')
+    caste_certificate = models.FileField(null=True, blank=True, upload_to='scholarships/single_parent/caste_certificate/')
+    status = models.CharField(max_length=20, choices=Constants.STATUS_CHOICES, default='INCOMPLETE')
+    remarks = models.TextField(null=True, blank=True)
+    date = models.DateField(default=datetime.date.today)
+    award_id = models.ForeignKey(Award_and_scholarship, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'SingleParent'
 
     def __str__(self):
         return str(self.student)

@@ -797,12 +797,13 @@ def dashboard(request):
     }
     # a=HoldsDesignation.objects.select_related('user','working','designation').filter(designation = user)
     print(context)
-    print(type(user.extrainfo.user_type))
+    if hasattr(user, 'extrainfo'):
+        print(type(user.extrainfo.user_type))
     if(request.user.get_username() == 'director'):
         return render(request, "dashboard/director_dashboard2.html", {})
     elif( "dean_rspc" in designation):
         return render(request, "dashboard/dashboard.html", context)
-    elif user.extrainfo.user_type != "student":
+    elif hasattr(user, 'extrainfo') and user.extrainfo.user_type != "student":
         print ("inside")
         designat = HoldsDesignation.objects.select_related().filter(user=user)
         response = {'designat':designat}

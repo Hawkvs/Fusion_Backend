@@ -57,7 +57,9 @@ def spacs(request):
                 x.notification_convocation_flag = False
             x.save()
 
-    if request.user.extrainfo.user_type == 'student':
+    if getattr(request.user, 'is_superuser', False):
+        return HttpResponseRedirect('/spacs/convener_view')
+    elif hasattr(request.user, 'extrainfo') and request.user.extrainfo.user_type == 'student':
         return HttpResponseRedirect('/spacs/student_view')
     elif hd_convener:
         return HttpResponseRedirect('/spacs/convener_view')
@@ -72,8 +74,11 @@ def spacs(request):
 def convener_view(request):
     try:
         convener = Designation.objects.get(name='spacsconvenor')
-        hd = HoldsDesignation.objects.get(
-            user=request.user, designation=convener)
+        if not getattr(request.user, 'is_superuser', False):
+            hd = HoldsDesignation.objects.filter(
+                user=request.user, designation=convener).first()
+            if not hd:
+                return HttpResponseRedirect('/spacs/')
     except:
         return HttpResponseRedirect('/logout')
     if request.method == 'POST':
@@ -265,6 +270,9 @@ def convener_view(request):
 
 @login_required(login_url='/accounts/login')
 def student_view(request):
+    if not getattr(request.user, 'is_superuser', False):
+        if not hasattr(request.user, 'extrainfo') or request.user.extrainfo.user_type != 'student':
+            return HttpResponseRedirect('/spacs/')
     if request.method == 'POST':
         if 'Submit_MCM' in request.POST:
             return submitMCM(request)
@@ -290,8 +298,13 @@ def staff_view(request):
         assistant = Designation.objects.get(
             name='spacsassistant'
         )
+        if not getattr(request.user, 'is_superuser', False):
+            hd = HoldsDesignation.objects.filter(
+                user=request.user, designation=assistant).first()
+            if not hd:
+                return HttpResponseRedirect('/spacs/')
     except:
-        return HttpResponseRedirect('/logout')
+        return HttpResponseRedirect('/spacs/')
 
     if request.method == 'POST':
 
@@ -1003,7 +1016,7 @@ def submitPreviousWinner(request):
     request.session["PreviousWinnerProgramme"] = PreviousWinnerProgramme
 
     award = Award_and_scholarship.objects.get(award_name=PreviousWinnerAward)
-    winners = Previous_winner.objects.select_related('student','award_id').filter(year=PreviousWinnerAcadYear, award_id=award, programme=PreviousWinnerProgramme)
+    winners = Previous_winner.objects.select_related('student','award_id').filter(year=int(PreviousWinnerAcadYear), award_id=award, programme=PreviousWinnerProgramme)
 
     paginator = Paginator(winners, 10)
     page = 1
@@ -1037,60 +1050,68 @@ def sendStudentRenderRequest(request, additionalParams={}):
     release = Release.objects.all()
     release_count = release.count()
     spi = Spi.objects.all()
-    no_of_mcm_filled = len(Mcm.objects.select_related('award_id','student').filter(
-        student=request.user.extrainfo.student))
-    no_of_con_filled = len(Director_silver.objects.select_related('student','award_id').filter(student=request.user.extrainfo.student)) + len(Director_gold.objects.select_related('student','award_id').filter(
-        student=request.user.extrainfo.student)) + len(Proficiency_dm.objects.select_related('student','award_id').filter(student=request.user.extrainfo.student))
-    #  Here we are fetching the flags from the Notification table of student
-    # end of database queries
 
     # notification flags
     update_mcm_flag = False
     update_con_flag = False
     x_notif_mcm_flag = False
     x_notif_con_flag = False
-    for dates in release:
-        if checkDate(dates.startdate, dates.enddate):
-            print("sudheer's test --->")
-            print(request.user.extrainfo.student)
-            print(str(request.user.extrainfo.student)[0:2])
-            if dates.award == 'Merit-cum-Means Scholarship' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]and dates.programme == request.user.extrainfo.student.programme:
-                x_notif_mcm_flag = True
-                if no_of_mcm_filled > 0:
-                    update_mcm_flag = True
-            elif dates.award == 'Convocation Medals' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]and dates.programme == request.user.extrainfo.student.programme:
-                
-                x_notif_con_flag = True
-                if no_of_con_filled > 0:
-                    update_con_flag = True
-        else:
-           
-            if dates.award == "Merit-cum-Means Scholarship" and dates.batch =="20"+ str(request.user.extrainfo.student)[0:2]:
-                try:
-                    x = Notification.objects.select_related('student_id','release_id').get(
-                        student_id=request.user.extrainfo.id, release_id=dates.id).delete()
-                except:
-                    pass
-            elif dates.award == 'Convocation Medals' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]:
-                try:
-                    x = Notification.objects.select_related('student_id','release_id').get(
-                        student_id=request.user.extrainfo.id, release_id=dates.id).delete()
-                except:
-                    pass
-
-    x = Notification.objects.select_related('student_id','release_id').filter(student_id=request.user.extrainfo.id).order_by('-release_id__date_time')
-    print(x)
     show_mcm_flag = False
     show_convocation_flag = False
-    for i in x:
-        print(i.invite_convocation_accept_flag)
-        if i.invite_mcm_accept_flag == True:
-            show_mcm_flag = True
-            break
-    for i in x:
-        if i.invite_convocation_accept_flag == True:
-            show_convocation_flag = True
-            break
+    x = []
+
+    if hasattr(request.user, 'extrainfo') and hasattr(request.user.extrainfo, 'student'):
+        no_of_mcm_filled = len(Mcm.objects.select_related('award_id','student').filter(
+            student=request.user.extrainfo.student))
+        no_of_con_filled = len(Director_silver.objects.select_related('student','award_id').filter(student=request.user.extrainfo.student)) + len(Director_gold.objects.select_related('student','award_id').filter(
+            student=request.user.extrainfo.student)) + len(Proficiency_dm.objects.select_related('student','award_id').filter(student=request.user.extrainfo.student))
+        #  Here we are fetching the flags from the Notification table of student
+        # end of database queries
+
+        for dates in release:
+            if checkDate(dates.startdate, dates.enddate):
+                print("sudheer's test --->")
+                print(request.user.extrainfo.student)
+                print(str(request.user.extrainfo.student)[0:2])
+                if dates.award == 'Merit-cum-Means Scholarship' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]and dates.programme == request.user.extrainfo.student.programme:
+                    x_notif_mcm_flag = True
+                    if no_of_mcm_filled > 0:
+                        update_mcm_flag = True
+                elif dates.award == 'Convocation Medals' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]and dates.programme == request.user.extrainfo.student.programme:
+                    
+                    x_notif_con_flag = True
+                    if no_of_con_filled > 0:
+                        update_con_flag = True
+            else:
+            
+                if dates.award == "Merit-cum-Means Scholarship" and dates.batch =="20"+ str(request.user.extrainfo.student)[0:2]:
+                    try:
+                        Notification.objects.select_related('student_id','release_id').filter(
+                            student_id=request.user.extrainfo.id, release_id=dates.id).delete()
+                    except:
+                        pass
+                elif dates.award == 'Convocation Medals' and dates.batch == "20"+str(request.user.extrainfo.student)[0:2]:
+                    try:
+                        Notification.objects.select_related('student_id','release_id').filter(
+                            student_id=request.user.extrainfo.id, release_id=dates.id).delete()
+                    except:
+                        pass
+
+        x = Notification.objects.select_related('student_id','release_id').filter(student_id=request.user.extrainfo.id).order_by('-release_id__date_time')
+        print(x)
+        for i in x:
+            print(i.invite_convocation_accept_flag)
+            if getattr(i, 'invite_mcm_accept_flag', False) == True:
+                show_mcm_flag = True
+                break
+        for i in x:
+            if getattr(i, 'invite_convocation_accept_flag', False) == True:
+                show_convocation_flag = True
+                break
+    else:
+        # User is not a student or has no extrainfo
+        pass
+        
     context.update({'time': time, 'ch': ch, 'spi': spi, 'release': release,
                     'release_count': release_count, 'x_notif_mcm_flag': x_notif_mcm_flag, 'x_notif_con_flag': x_notif_con_flag,
                     'source': source, 'show_mcm_flag': show_mcm_flag, 'show_convocation_flag': show_convocation_flag,
@@ -1117,8 +1138,8 @@ def getCommonParams(request):
     awards = Award_and_scholarship.objects.all()
     con = Designation.objects.get(name='spacsconvenor')
     assis = Designation.objects.get(name='spacsassistant')
-    hd = HoldsDesignation.objects.get(designation=con)
-    hd1 = HoldsDesignation.objects.get(designation=assis)
+    hd = HoldsDesignation.objects.filter(designation=con).first()
+    hd1 = HoldsDesignation.objects.filter(designation=assis).first()
     year_range = range(2013, datetime.datetime.now().year + 1)
     active_batches = range(datetime.datetime.now().year - 4 , datetime.datetime.now().year + 1)
     last_clicked = ''
